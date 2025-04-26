@@ -1,60 +1,497 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Video Uploader</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>priyal vidoes</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #000;
+      color: #fff;
+    }
+    header {
+      background: #111;
+      padding: 15px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      border-bottom: 2px solid #CC0000;
+      color: white;
+    }
+    .section-tabs {
+      display: flex;
+      overflow-x: auto;
+      background: #111;
+      padding: 10px;
+      border-bottom: 1px solid #222;
+    }
+    .section-tabs button {
+      flex-shrink: 0;
+      background: #222;
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      margin-right: 10px;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .section-tabs button.active,
+    .section-tabs button:hover {
+      background: #CC0000;
+      color: white;
+    }
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 15px;
+      padding: 20px;
+    }
+    @media (min-width: 768px) {
+      .video-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      }
+    }
+    @media (min-width: 1024px) {
+      .video-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      }
+    }
+    .video-card {
+      background: #1a1a1a;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.3s, background 0.3s;
+    }
+    .video-card:hover {
+      transform: scale(1.05);
+      background: #2a2a2a;
+    }
+    .video-card img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .video-title {
+      padding: 10px;
+      font-size: 14px;
+      text-align: center;
+      font-weight: bold;
+      color: #fff;
+    }
+    .popup {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #CC0000;
+      color: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      display: none;
+      z-index: 1000;
+    }
+    #realtimeNotice {
+      background: #CC0000;
+      padding: 15px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 16px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      border-bottom: 2px solid white;
+      display: none;
+      animation: slideDown 0.5s ease;
+    }
+    .maintenance {
+      text-align: center;
+      margin-top: 100px;
+      font-size: 24px;
+      color: #fff;
+    }
+
+#videoModal {
+  display: flex;
+  visibility: hidden;
+  opacity: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.9);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+  transition: opacity 0.3s ease;
+}
+
+#videoModal.show {
+  visibility: visible;
+  opacity: 1;
+}
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 90vw;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+#html5Player {
+  width: 100%;
+  height: auto;
+  max-height: 80vh;
+  border-radius: 15px;
+  background: black;
+  object-fit: contain;
+}
+</style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body>
-    <h1>Upload a Video</h1>
-    <form id="uploadForm" enctype="multipart/form-data">
-        <input type="file" name="video" accept="video/*" required>
-        <input type="text" name="name" placeholder="Enter video name" required>
-        <button type="submit">Upload</button>
-    </form>
+  <header>priyal vidoes</header>
+  <div id="realtimeNotice" style="
+      background: linear-gradient(90deg, #ff416c, #ff4b2b);
+      padding: 15px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 16px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      border-bottom: 2px solid white;
+      display: none;
+      animation: slideDown 0.5s ease;
+    "></div>
+<div style="text-align: center; padding: 10px;">
+  <input
+    type="text"
+    id="searchInput"
+    placeholder="Search videos by title..."
+    onkeyup="searchVideos()"
+    style="padding: 10px; width: 60%; border-radius: 10px; border: none; max-width: 400px;"
+  />
+</div>
 
-    <h2>Search Videos</h2>
-    <input type="text" id="searchInput" placeholder="Search video by name">
-    <button onclick="searchVideos()">Search</button>
+    <style>
+      @keyframes slideDown {
+        0% { transform: translateY(-100%); opacity: 0; }
+        100% { transform: translateY(0); opacity: 1; }
+      }
+    </style>
+  <div class="popup" id="popup"></div>
+  <div class="section-tabs" id="sectionTabs"></div>
+  <div class="video-grid" id="videoGrid"></div>
+  <div class="maintenance" id="maintenanceMessage" style="display:none;">Site Under Maintenance</div>
 
-    <div id="videoList"></div>
+  <script>
+   const firebaseConfig = {
+      apiKey: "AIzaSyD0SdKUtMilzvq3VUwpS9VOERbV7yGeLYs",
+      authDomain: "live-tv-eb23f.firebaseapp.com",
+      databaseURL: "https://live-tv-eb23f-default-rtdb.firebaseio.com",
+      projectId: "live-tv-eb23f",
+      storageBucket: "live-tv-eb23f.firebasestorage.app",
+      messagingSenderId: "333568931851",
+      appId: "1:333568931851:web:96b233ef86e4e7135baf0e"
+    };
 
-    <script>
-        async function searchVideos() {
-            const query = document.getElementById('searchInput').value;
-            const res = await fetch(`/videos?search=${query}`);
-            const videos = await res.json();
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-            const list = document.getElementById('videoList');
-            list.innerHTML = '';
+    const popup = document.getElementById("popup");
+let allVideos = [];
+let currentSection = '';
+let videosPerPage = 12;
+let loadedCount = 0;
+let isLoading = false;
+    const videoGrid = document.getElementById("videoGrid");
+    const sectionTabs = document.getElementById("sectionTabs");
+    const maintenanceMessage = document.getElementById("maintenanceMessage");
 
-            videos.forEach(video => {
-                const div = document.createElement('div');
-                div.innerHTML = `
-                    <h3>${video.name}</h3>
-                    <video src="/uploads/${video.filename}" width="320" controls></video><br>
-                    <a href="/uploads/${video.filename}" download>Download</a>
-                    <hr>
-                `;
-                list.appendChild(div);
-            });
+    db.ref("maintenanceMode").on("value", snap => {
+      if (snap.val() === true) {
+        maintenanceMessage.style.display = "block";
+        videoGrid.style.display = "none";
+        sectionTabs.style.display = "none";
+      } else {
+        maintenanceMessage.style.display = "none";
+        videoGrid.style.display = "grid";
+        sectionTabs.style.display = "flex";
+      }
+    });
+
+    db.ref("popupNotification").on("value", snap => {
+      const data = snap.val();
+      if (data && data.enabled) {
+        popup.textContent = data.message;
+        popup.style.display = "block";
+        setTimeout(() => popup.style.display = "none", 5000);
+      }
+    });
+
+    function loadSections() {
+      db.ref("sections").on("value", snap => {
+        sectionTabs.innerHTML = "";
+        const sections = snap.val();
+        for (const section in sections) {
+          const btn = document.createElement("button");
+          btn.textContent = section;
+          btn.onclick = () => {
+            document.querySelectorAll(".section-tabs button").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            loadVideos(section);
+          };
+          sectionTabs.appendChild(btn);
         }
+        // Load first section
+        const firstSection = Object.keys(sections)[0];
+        if (firstSection) {
+          sectionTabs.children[0].click();
+        }
+      });
+    }
 
-        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
+    // Real-time notification bar
+    db.ref("realtimeNotification/message").on("value", snap => {
+      const noticeBar = document.getElementById("realtimeNotice");
+      const msg = snap.val();
+      if (msg) {
+        noticeBar.style.display = "block";
+        noticeBar.textContent = msg;
+      } else {
+        noticeBar.style.display = "none";
+      }
+    });
 
-            const res = await fetch('/upload', {
-                method: 'POST',
-                body: formData
-            });
+    // Load videos - newest first
+    
 
-            const data = await res.json();
-            alert(data.message);
-            e.target.reset();
-        });
+let videoListener = null;
 
-        // Show all videos initially
-        searchVideos();
-    </script>
+function loadVideos(section) {
+  // Clean up previous listener
+  if (videoListener) {
+    db.ref("videos/" + currentSection).off("value", videoListener);
+  }
+
+  currentSection = section;
+  videoGrid.innerHTML = "";
+  loadedCount = 0;
+  isLoading = false;
+  allVideos = [];
+
+  videoListener = snap => {
+    const videos = snap.val();
+    if (!videos) return;
+    allVideos = Object.values(videos).reverse();
+    videoGrid.innerHTML = "";
+    loadedCount = 0;
+    loadMoreVideos();
+  };
+
+  db.ref("videos/" + section).on("value", videoListener);
+}
+
+function loadMoreVideos() {
+  if (isLoading) return;
+  isLoading = true;
+
+  const nextBatch = allVideos.slice(loadedCount, loadedCount + videosPerPage);
+  for (const video of nextBatch) {
+    const card = document.createElement("div");
+    card.className = "video-card";
+    card.innerHTML = `
+      <img src="${video.thumbnail}" alt="Thumbnail">
+      <div class="video-title">${video.title}</div>
+    `;
+    card.onclick = () => playVideo(video.link);
+    videoGrid.appendChild(card);
+  }
+  loadedCount += videosPerPage;
+  isLoading = false;
+}
+
+function searchVideos() {
+  const keyword = document.getElementById("searchInput").value.toLowerCase();
+  const sectionButtons = document.querySelectorAll(".section-tabs button");
+  const activeBtn = Array.from(sectionButtons).find(btn => btn.classList.contains("active"));
+  if (!activeBtn) return;
+
+  const section = activeBtn.textContent;
+  db.ref("videos/" + section).once("value").then(snap => {
+    videoGrid.innerHTML = "";
+    const videos = snap.val();
+    if (!videos) return;
+    const keys = Object.keys(videos).reverse();
+    for (const key of keys) {
+      const video = videos[key];
+      if (video.title.toLowerCase().includes(keyword)) {
+        const card = document.createElement("div");
+        card.className = "video-card";
+        card.innerHTML = `
+          <img src="${video.thumbnail}" alt="Thumbnail">
+          <div class="video-title">${video.title}</div>
+        `;
+        card.onclick = () => {
+          playVideo(video.link);
+        };
+        videoGrid.appendChild(card);
+      }
+    }
+  });
+}
+
+        loadSections();
+window.addEventListener('scroll', () => {
+  if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+    loadMoreVideos();
+  }
+});
+  </script>
+
+<!-- Video Modal -->
+<div id="videoModal" style= position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; justify-content:center; align-items:center;">
+  <div class="video-wrapper">
+    
+<button onclick="closeModal()" style="
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 20px;
+  background: #ff4b2b;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 20;">✖</button>
+
+    <video id="html5Player" controls autoplay controlsList="nodownload" style="width:100%; height:auto; border-radius:15px; background:black;"></video>
+
+<div id="customControlsOverlay" style="
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 10px 15px;
+  border-radius: 12px;
+  z-index: 10;
+">
+  <button onclick="togglePlay()" style="padding: 8px 12px; font-size: 16px; background: #CC0000; color: white; border: none; border-radius: 6px; cursor: pointer;">▶️/⏸️</button>
+  <button onclick="skip(-10)" style="padding: 8px 12px; font-size: 16px; background: #444; color: white; border: none; border-radius: 6px; cursor: pointer;">⏪ 10s</button>
+  <button onclick="skip(10)" style="padding: 8px 12px; font-size: 16px; background: #444; color: white; border: none; border-radius: 6px; cursor: pointer;">10s ⏩</button>
+  <button onclick="toggleMute()" style="padding: 8px 12px; font-size: 16px; background: #444; color: white; border: none; border-radius: 6px; cursor: pointer;">🔇</button>
+  <button onclick="toggleFullscreen()" style="padding: 8px 12px; font-size: 16px; background: #444; color: white; border: none; border-radius: 6px; cursor: pointer;">⛶</button>
+</div>
+
+</div>
+</div>
+
+<!-- HLS Support -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<script>
+  let hls;
+const videoModal = document.getElementById('videoModal');
+  const html5Player = document.getElementById('html5Player');
+
+  function playVideo(link) {
+    videoModal.classList.add('show');
+
+    if (hls) {
+      hls.destroy();
+      hls = null;
+    }
+
+    if (Hls.isSupported() && link.endsWith('.m3u8')) {
+      hls = new Hls();
+      hls.loadSource(link);
+      hls.attachMedia(html5Player);
+    } else {
+      html5Player.src = link;
+    }
+
+    html5Player.play();
+  }
+
+  function closeModal() {
+    videoModal.classList.remove('show');
+    html5Player.pause();
+    html5Player.src = '';
+  }
+
+const customControls = document.getElementById("customControlsOverlay");
+let controlTimeout;
+
+html5Player.addEventListener("play", () => {
+  showControls();
+});
+
+html5Player.addEventListener("pause", () => {
+  showControls();
+});
+
+html5Player.addEventListener("mousemove", () => {
+  if (!html5Player.paused) {
+    showControls();
+  }
+});
+
+html5Player.addEventListener("ended", () => {
+  customControls.style.display = "none";
+});
+
+function showControls() {
+  customControls.style.display = "flex";
+  clearTimeout(controlTimeout);
+  controlTimeout = setTimeout(() => {
+    if (!html5Player.paused) {
+      customControls.style.display = "none";
+    }
+  }, 3000);
+}
+
+</script>
+
+<script>
+function togglePlay() {
+  if (html5Player.paused) {
+    html5Player.play();
+  } else {
+    html5Player.pause();
+  }
+}
+
+function skip(seconds) {
+  html5Player.currentTime += seconds;
+}
+
+function toggleMute() {
+  html5Player.muted = !html5Player.muted;
+}
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    html5Player.requestFullscreen();
+  }
+}
+</script>
+
 </body>
+
 </html>
