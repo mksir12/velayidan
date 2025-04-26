@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>priyal videos</title>
+  <style>
+    /* Same styles as before */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #000;
+      color: #fff;
+    }
+    header {
+      background: #111;
+      padding: 15px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      border-bottom: 2px solid #CC0000;
+      color: white;
+    }
+    .section-tabs {
+      display: flex;
+      overflow-x: auto;
+      background: #111;
+      padding: 10px;
+      border-bottom: 1px solid #222;
+    }
+    .section-tabs button {
+      flex-shrink: 0;
+      background: #222;
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      margin-right: 10px;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .section-tabs button.active,
+    .section-tabs button:hover {
+      background: #CC0000;
+      color: white;
+    }
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 15px;
+      padding: 20px;
+    }
+    @media (min-width: 768px) {
+      .video-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      }
+    }
+    @media (min-width: 1024px) {
+      .video-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      }
+    }
+    .video-card {
+      background: #1a1a1a;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.3s, background 0.3s;
+    }
+    .video-card:hover {
+      transform: scale(1.05);
+      background: #2a2a2a;
+    }
+    .video-card img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .video-title {
+      padding: 10px;
+      font-size: 14px;
+      text-align: center;
+      font-weight: bold;
+      color: #fff;
+    }
+    .popup {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #CC0000;
+      color: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      display: none;
+      z-index: 1000;
+    }
+    #realtimeNotice {
+      background: #CC0000;
+      padding: 15px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 16px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      border-bottom: 2px solid white;
+      display: none;
+      animation: slideDown 0.5s ease;
+    }
+    .maintenance {
+      text-align: center;
+      margin-top: 100px;
+      font-size: 24px;
+      color: #fff;
+    }
+
+#videoModal {
+  display: flex;
+  visibility: hidden;
+  opacity: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.9);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+  transition: opacity 0.3s ease;
+}
+
+#videoModal.show {
+  visibility: visible;
+  opacity: 1;
+}
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 90vw;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+#html5Player {
+  width: 100%;
+  height: auto;
+  max-height: 80vh;
+  border-radius: 15px;
+  background: black;
+  object-fit: contain;
+}
+</style>
+</head>
+<body>
+  <header>priyal videos</header>
+  <div id="realtimeNotice"></div>
+  <div style="text-align: center; padding: 10px;">
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Search videos by title..."
+      onkeyup="searchVideos()"
+      style="padding: 10px; width: 60%; border-radius: 10px; border: none; max-width: 400px;"
+    />
+  </div>
+
+  <div class="popup" id="popup"></div>
+  <div class="section-tabs" id="sectionTabs"></div>
+  <div class="video-grid" id="videoGrid"></div>
+  <div class="maintenance" id="maintenanceMessage" style="display:none;">Site Under Maintenance</div>
+
+  <script>
+// Load the videos data from videos.json
+async function fetchVideos() {
+  try {
+    const response = await fetch('videos.json');
+    const videosData = await response.json();
+    loadSections(videosData);
+  } catch (error) {
+    console.error('Error loading videos data:', error);
+  }
+}
+
+function loadSections(videosData) {
+  const sections = Object.keys(videosData);
+  const sectionTabs = document.getElementById("sectionTabs");
+  sectionTabs.innerHTML = "";
+  sections.forEach(section => {
+    const btn = document.createElement("button");
+    btn.textContent = section;
+    btn.onclick = () => {
+      document.querySelectorAll(".section-tabs button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      loadVideos(section, videosData);
+    };
+    sectionTabs.appendChild(btn);
+  });
+
+  const firstSection = sections[0];
+  if (firstSection) {
+    sectionTabs.children[0].click();
+  }
+}
+
+function loadVideos(section, videosData) {
+  const videoGrid = document.getElementById("videoGrid");
+  videoGrid.innerHTML = "";
+  const allVideos = videosData[section];
+  let loadedCount = 0;
+  const videosPerPage = 12;
+  let isLoading = false;
+
+  function loadMoreVideos() {
+    if (isLoading) return;
+    isLoading = true;
+
+    const nextBatch = allVideos.slice(loadedCount, loadedCount + videosPerPage);
+    nextBatch.forEach(video => {
+      const card = document.createElement("div");
+      card.className = "video-card";
+      card.innerHTML = `
+        <img src="${video.thumbnail}" alt="Thumbnail">
+        <div class="video-title">${video.title}</div>
+      `;
+      card.onclick = () => playVideo(video.link);
+      videoGrid.appendChild(card);
+    });
+    loadedCount += videosPerPage;
+    isLoading = false;
+  }
+
+  loadMoreVideos();
+  window.addEventListener('scroll', () => {
+    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+      loadMoreVideos();
+    }
+  });
+}
+
+function searchVideos() {
+  const keyword = document.getElementById("searchInput").value.toLowerCase();
+  const sectionButtons = document.querySelectorAll(".section-tabs button");
+  const activeBtn = Array.from(sectionButtons).find(btn => btn.classList.contains("active"));
+  if (!activeBtn) return;
+
+  const section = activeBtn.textContent;
+  const videoGrid = document.getElementById("videoGrid");
+  videoGrid.innerHTML = "";
+  fetch('videos.json')
+    .then(response => response.json())
+    .then(videosData => {
+      const videos = videosData[section];
+      videos.forEach(video => {
+        if (video.title.toLowerCase().includes(keyword)) {
+          const card = document.createElement("div");
+          card.className = "video-card";
+          card.innerHTML = `
+            <img src="${video.thumbnail}" alt="Thumbnail">
+            <div class="video-title">${video.title}</div>
+          `;
+          card.onclick = () => playVideo(video.link);
+          videoGrid.appendChild(card);
+        }
+      });
+    });
+}
+
+function playVideo(link) {
+  const videoModal = document.getElementById('videoModal');
+  const html5Player = document.getElementById('html5Player');
+  videoModal.classList.add('show');
+  html5Player.src = link;
+  html5Player.play();
+}
+
+function closeModal() {
+  const videoModal = document.getElementById('videoModal');
+  const html5Player = document.getElementById('html5Player');
+  videoModal.classList.remove('show');
+  html5Player.pause();
+  html5Player.src = '';
+}
+
+window.addEventListener('load', () => {
+  fetchVideos();
+});
+</script>
+
+<!-- Video Modal -->
+<div id="videoModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; justify-content:center; align-items:center;">
+  <div class="video-wrapper">
+    <button onclick="closeModal()" style="position: absolute; top: 10px; right: 10px; font-size: 20px; background: #ff4b2b; color: #fff; border: none; padding: 8px 12px; border-radius: 50%; cursor: pointer; z-index: 20;">✖</button>
+    <video id="html5Player" controls autoplay controlsList="nodownload" style="width:100%; height:auto; border-radius:15px; background:black;"></video>
+  </div>
+</div>
+
+</body>
+</html>
