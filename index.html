@@ -178,34 +178,43 @@
   <script>
 // Load the videos data from videos.json
 async function fetchVideos() {
-  try {
-    const response = await fetch('videos.json');
-    const videosData = await response.json();
-    loadSections(videosData);
-  } catch (error) {
-    console.error('Error loading videos data:', error);
-  }
+  try {
+    const response = await fetch('videos.json');
+    const videosData = await response.json();
+    loadSections(videosData);
+
+    // Display a real-time notification after the videos are loaded
+    const notice = document.getElementById('realtimeNotice');
+    notice.style.display = 'block'; // Show
+    notice.textContent = 'Videos have been loaded successfully!';
+    setTimeout(() => {
+      notice.style.display = 'none'; // Hide after 5 seconds
+    }, 5000);
+
+  } catch (error) {
+    console.error('Error loading videos data:', error);
+  }
 }
 
 function loadSections(videosData) {
-  const sections = Object.keys(videosData);
-  const sectionTabs = document.getElementById("sectionTabs");
-  sectionTabs.innerHTML = "";
-  sections.forEach(section => {
-    const btn = document.createElement("button");
-    btn.textContent = section;
-    btn.onclick = () => {
-      document.querySelectorAll(".section-tabs button").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      loadVideos(section, videosData);
-    };
-    sectionTabs.appendChild(btn);
-  });
+  const sections = Object.keys(videosData);
+  const sectionTabs = document.getElementById("sectionTabs");
+  sectionTabs.innerHTML = "";
+  sections.forEach(section => {
+    const btn = document.createElement("button");
+    btn.textContent = section;
+    btn.onclick = () => {
+      document.querySelectorAll(".section-tabs button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      loadVideos(section, videosData);
+    };
+    sectionTabs.appendChild(btn);
+  });
 
-  const firstSection = sections[0];
-  if (firstSection) {
-    sectionTabs.children[0].click();
-  }
+  const firstSection = sections[0];
+  if (firstSection) {
+    sectionTabs.children[0].click();
+  }
 }
 
 function loadVideos(section, videosData) {
