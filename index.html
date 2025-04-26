@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Uploader</title>
+</head>
+<body>
+    <h1>Upload a Video</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="video" accept="video/*" required>
+        <input type="text" name="name" placeholder="Enter video name" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    <h2>Search Videos</h2>
+    <input type="text" id="searchInput" placeholder="Search video by name">
+    <button onclick="searchVideos()">Search</button>
+
+    <div id="videoList"></div>
+
+    <script>
+        async function searchVideos() {
+            const query = document.getElementById('searchInput').value;
+            const res = await fetch(`/videos?search=${query}`);
+            const videos = await res.json();
+
+            const list = document.getElementById('videoList');
+            list.innerHTML = '';
+
+            videos.forEach(video => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <h3>${video.name}</h3>
+                    <video src="/uploads/${video.filename}" width="320" controls></video><br>
+                    <a href="/uploads/${video.filename}" download>Download</a>
+                    <hr>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+
+            const res = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            alert(data.message);
+            e.target.reset();
+        });
+
+        // Show all videos initially
+        searchVideos();
+    </script>
+</body>
+</html>
