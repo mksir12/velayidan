@@ -188,10 +188,10 @@ async function fetchVideos() {
     // Display a real-time notification after the videos are loaded
     const notice = document.getElementById('realtimeNotice');
     notice.style.display = 'block'; // Show
-    notice.textContent = 'Videos have been loaded successfully!';
+    notice.textContent = 'New Videos Adding Soon!!';
     setTimeout(() => {
       notice.style.display = 'none'; // Hide after 5 seconds
-    }, 5000);
+    }, 10000);
 
   } catch (error) {
     console.error('Error loading videos data:', error);
