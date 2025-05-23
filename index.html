@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>priyal videos</title>
+  <script defer src="/_vercel/insights/script.js"></script>
+
   <style>
     /* Same styles as before */
     body {
@@ -283,10 +285,8 @@ function searchVideos() {
 function playVideo(link) {
   const videoModal = document.getElementById('videoModal');
   const html5Player = document.getElementById('html5Player');
-  const downloadBtn = document.getElementById('downloadBtn');
   videoModal.classList.add('show');
   html5Player.src = link;
-  downloadBtn.href = link; // Set download link
   html5Player.play();
 }
 
@@ -305,12 +305,9 @@ window.addEventListener('load', () => {
 
 <!-- Video Modal -->
 <div id="videoModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; justify-content:center; align-items:center;">
-  <div class="video-wrapper" style="text-align: center;">
+  <div class="video-wrapper">
     <button onclick="closeModal()" style="position: absolute; top: 10px; right: 10px; font-size: 20px; background: #ff4b2b; color: #fff; border: none; padding: 8px 12px; border-radius: 50%; cursor: pointer; z-index: 20;">✖</button>
     <video id="html5Player" controls autoplay style="width:100%; height:auto; border-radius:15px; background:black;"></video>
-    <a id="downloadBtn" href="#" download target="_blank" style="margin-top: 10px; display: inline-block; color: white; background: #28a745; padding: 8px 12px; border-radius: 5px; text-decoration: none; text-align:center;">
-      Download Video
-    </a>
   </div>
 </div>
 
